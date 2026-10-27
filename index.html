@@ -3,17 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>МайнБлок 2048: Шахтёрский Крафт</title>
+  <title>МайнБлок 2048: Шахтёрский Рогалик & Аркада</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body oncontextmenu="return false;" onselectstart="return false;" ondragstart="return false;">
   <div id="app">
-    <!-- Top Header -->
+    <!-- Top Header & Mode Switcher -->
     <header class="hud-header">
       <div class="brand-box">
         <div class="brand-icon" id="header-icon"></div>
         <div class="brand-text">
-          <h1>МАЙН<span>2048</span></h1>
+          <div class="title-row">
+            <h1>МАЙН<span>2048</span></h1>
+            <div class="mode-tabs">
+              <button class="mode-tab active" id="tab-story" title="Сюжетный Рогалик с врагами и лутом">⚔️ СЮЖЕТ</button>
+              <button class="mode-tab" id="tab-endless" title="Классическая бесконечная аркада">♾ АРКАДА</button>
+            </div>
+          </div>
           <div class="xp-bar-wrap" title="Прогресс шахтёра (Уровень)">
             <div class="xp-bar-fill" id="xp-bar-fill"></div>
             <span class="xp-level" id="xp-level">УР. 1</span>
@@ -22,6 +28,10 @@
       </div>
 
       <div class="scores-wrap">
+        <div class="mc-slot mult-slot" id="mult-slot" title="Текущий множитель очков (Balatro Mult)">
+          <span class="slot-label">МНОЖ.</span>
+          <span class="slot-value" id="mult-val">×1.0</span>
+        </div>
         <div class="mc-slot score-slot">
           <span class="slot-label" data-i18n="score">СЧЁТ</span>
           <span class="slot-value" id="score-val">0</span>
@@ -33,13 +43,48 @@
       </div>
     </header>
 
-    <!-- Subheader: Next target & Tools (Pickaxe, Undo, Sound, Restart) -->
+    <!-- Story Mode: Enemy Encounter Panel (Hidden in Endless mode) -->
+    <section class="enemy-panel" id="enemy-panel">
+      <div class="enemy-left">
+        <div class="enemy-avatar-box" id="enemy-avatar-box">
+          <canvas id="enemy-canvas" width="32" height="32"></canvas>
+          <span class="enemy-stage-badge" id="enemy-stage-badge">1/10</span>
+        </div>
+        <div class="enemy-details">
+          <div class="enemy-title-row">
+            <strong class="enemy-name" id="enemy-name">🐔 Курица</strong>
+            <span class="enemy-ability-tag hidden" id="enemy-ability-tag">СПОСОБНОСТЬ</span>
+          </div>
+          <div class="enemy-quest-text" id="enemy-quest-text">Собери Уголь (8)</div>
+          <div class="enemy-progress-wrap">
+            <div class="enemy-progress-fill" id="enemy-progress-fill"></div>
+            <span class="enemy-progress-label" id="enemy-progress-label">0 / 1</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="enemy-moves-box" id="enemy-moves-box" title="Осталось ходов до конца боя">
+        <span class="moves-label">ХОДЫ</span>
+        <span class="moves-val" id="moves-left-val">14</span>
+      </div>
+    </section>
+
+    <!-- Endless Mode Target Banner & Active Jokers / Tools Toolbar -->
     <section class="toolbar">
-      <div class="target-banner" id="target-banner" title="Следующая цель открытия">
+      <!-- Shown in Endless Mode -->
+      <div class="target-banner hidden" id="target-banner" title="Следующая цель открытия">
         <canvas id="target-canvas" width="32" height="32"></canvas>
         <div class="target-info">
-          <span class="target-caption" data-i18n="goal">ЦЕЛЬ ШАХТЫ:</span>
+          <span class="target-caption">ЦЕЛЬ ШАХТЫ:</span>
           <strong class="target-name" id="target-name">Алмазная руда (512)</strong>
+        </div>
+      </div>
+
+      <!-- Shown in Story Mode: Active Balatro-style Relics/Jokers -->
+      <div class="jokers-bar" id="jokers-bar">
+        <span class="jokers-caption">ЧАРЫ:</span>
+        <div class="jokers-list" id="jokers-list">
+          <span class="jokers-empty">побеждай мобов для чар ×Mult</span>
         </div>
       </div>
 
@@ -53,21 +98,23 @@
           <span class="btn-badge" id="pickaxe-count">2</span>
         </button>
         <button class="mc-btn icon-only" id="btn-sound" title="Звук Вкл/Выкл">🔊</button>
-        <button class="mc-btn icon-only" id="btn-new" title="Новая шахта">🔄</button>
+        <button class="mc-btn icon-only" id="btn-new" title="Новый забег">🔄</button>
       </div>
     </section>
 
-    <!-- Pickaxe Mode Hint Banner -->
+    <!-- Active Tool Hint Banner (Pickaxe or Anvil) -->
     <div class="pickaxe-hint hidden" id="pickaxe-hint">
-      <span>⛏ Кликните по любому блоку на поле, чтобы разбить его киркой!</span>
+      <span id="tool-hint-text">⛏ Кликните по любому блоку на поле, чтобы разбить его киркой!</span>
       <button class="mc-btn small-btn" id="btn-cancel-pickaxe">Отмена</button>
     </div>
+
+    <!-- Toast Notification Banner (Loot drop, Boss ability, Double stack active) -->
+    <div class="toast-banner hidden" id="toast-banner"></div>
 
     <!-- Main 4x4 Board Area -->
     <main class="board-stage">
       <div class="board-frame" id="board-frame">
         <div class="grid-bg" id="grid-bg">
-          <!-- 16 cells generated or static -->
           <div class="grid-cell" data-r="0" data-c="0"></div>
           <div class="grid-cell" data-r="0" data-c="1"></div>
           <div class="grid-cell" data-r="0" data-c="2"></div>
@@ -92,30 +139,51 @@
         <div class="modal-overlay hidden" id="modal-overlay">
           <div class="mc-dialog">
             <h2 id="modal-title">ШАХТА ЗАВАЛЕНА!</h2>
-            <p id="modal-subtitle">Ходов больше нет, но вы добыли отличные ресурсы.</p>
+            <p id="modal-subtitle">Ходов больше нет, но ваш Сундук предметов сохранён для следующего забега!</p>
             <div class="modal-best-block" id="modal-best-block">
               <canvas id="modal-block-canvas" width="48" height="48"></canvas>
               <div>
-                <div class="modal-block-label">Лучший добытый блок:</div>
+                <div class="modal-block-label" id="modal-block-label">Лучший добытый блок:</div>
                 <div class="modal-block-name" id="modal-block-name">Железная руда</div>
               </div>
             </div>
             <div class="modal-actions">
-              <button class="mc-btn primary-btn" id="btn-modal-action">КОПАТЬ СНОВА</button>
-              <button class="mc-btn secondary-btn hidden" id="btn-modal-continue">ПРОДОЛЖИТЬ</button>
+              <button class="mc-btn primary-btn" id="btn-modal-action">НОВЫЙ ЗАБЕГ</button>
+              <button class="mc-btn secondary-btn hidden" id="btn-modal-continue">В БЕЗДНУ (АНТЕ+)</button>
             </div>
+          </div>
+        </div>
+
+        <!-- Balatro-style Relic / Joker Choice Overlay -->
+        <div class="modal-overlay hidden" id="joker-modal">
+          <div class="mc-dialog joker-dialog">
+            <h2>🃏 ВЫБЕРИТЕ ЧАРЫ ЗАБЕГА</h2>
+            <p id="joker-modal-sub">Чары дают постоянный бонус и множители очков до конца текущего забега:</p>
+            <div class="joker-choices" id="joker-choices"></div>
           </div>
         </div>
       </div>
     </main>
 
-    <!-- Bottom Ore Compendium / Crafting Chain (Hotbar style) -->
+    <!-- Bottom Footer: Persistent Loot Chest + Ore Compendium -->
     <footer class="compendium-footer">
-      <div class="compendium-header">
-        <span>ЦЕПОЧКА БЛОКОВ И РУД (СТЫКУЙ ОДИНАКОВЫЕ БЛОКИ)</span>
-        <span id="discovered-count">Открыто: 2 / 13</span>
+      <!-- Persistent Consumable Items (Saved across runs!) -->
+      <div class="chest-section" id="chest-section">
+        <div class="compendium-header">
+          <span>🎒 СКВОЗНОЙ СУНДУК ПРЕДМЕТОВ (НЕ ТЕРЯЕТСЯ МЕЖДУ ИГРАМИ)</span>
+          <span id="double-buff-badge" class="buff-pill hidden">⚡ УДВОЕНИЕ СТАКОВ: 3</span>
+        </div>
+        <div class="items-bar" id="items-bar"></div>
       </div>
-      <div class="ore-chain" id="ore-chain"></div>
+
+      <!-- 13 Ores Chain -->
+      <div class="ores-section">
+        <div class="compendium-header">
+          <span>ЦЕПОЧКА БЛОКОВ И РУД</span>
+          <span id="discovered-count">Открыто: 2 / 13</span>
+        </div>
+        <div class="ore-chain" id="ore-chain"></div>
+      </div>
     </footer>
   </div>
 
