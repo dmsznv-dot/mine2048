@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>МайнБлок 2048: Шахтёрский Крафт</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body oncontextmenu="return false;" onselectstart="return false;" ondragstart="return false;">
+  <div id="app">
+    <!-- Top Header -->
+    <header class="hud-header">
+      <div class="brand-box">
+        <div class="brand-icon" id="header-icon"></div>
+        <div class="brand-text">
+          <h1>МАЙН<span>2048</span></h1>
+          <div class="xp-bar-wrap" title="Прогресс шахтёра (Уровень)">
+            <div class="xp-bar-fill" id="xp-bar-fill"></div>
+            <span class="xp-level" id="xp-level">УР. 1</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="scores-wrap">
+        <div class="mc-slot score-slot">
+          <span class="slot-label" data-i18n="score">СЧЁТ</span>
+          <span class="slot-value" id="score-val">0</span>
+        </div>
+        <div class="mc-slot best-slot">
+          <span class="slot-label" data-i18n="best">РЕКОРД</span>
+          <span class="slot-value" id="best-val">0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Subheader: Next target & Tools (Pickaxe, Undo, Sound, Restart) -->
+    <section class="toolbar">
+      <div class="target-banner" id="target-banner" title="Следующая цель открытия">
+        <canvas id="target-canvas" width="32" height="32"></canvas>
+        <div class="target-info">
+          <span class="target-caption" data-i18n="goal">ЦЕЛЬ ШАХТЫ:</span>
+          <strong class="target-name" id="target-name">Алмазная руда (512)</strong>
+        </div>
+      </div>
+
+      <div class="tools-group">
+        <button class="mc-btn tool-btn" id="btn-undo" title="Отменить ход (Шаг назад)">
+          <span class="btn-icon">↩</span>
+          <span class="btn-badge" id="undo-count">3</span>
+        </button>
+        <button class="mc-btn tool-btn" id="btn-pickaxe" title="Кирка: разбить выбранный блок">
+          <span class="btn-icon">⛏</span>
+          <span class="btn-badge" id="pickaxe-count">2</span>
+        </button>
+        <button class="mc-btn icon-only" id="btn-sound" title="Звук Вкл/Выкл">🔊</button>
+        <button class="mc-btn icon-only" id="btn-new" title="Новая шахта">🔄</button>
+      </div>
+    </section>
+
+    <!-- Pickaxe Mode Hint Banner -->
+    <div class="pickaxe-hint hidden" id="pickaxe-hint">
+      <span>⛏ Кликните по любому блоку на поле, чтобы разбить его киркой!</span>
+      <button class="mc-btn small-btn" id="btn-cancel-pickaxe">Отмена</button>
+    </div>
+
+    <!-- Main 4x4 Board Area -->
+    <main class="board-stage">
+      <div class="board-frame" id="board-frame">
+        <div class="grid-bg" id="grid-bg">
+          <!-- 16 cells generated or static -->
+          <div class="grid-cell" data-r="0" data-c="0"></div>
+          <div class="grid-cell" data-r="0" data-c="1"></div>
+          <div class="grid-cell" data-r="0" data-c="2"></div>
+          <div class="grid-cell" data-r="0" data-c="3"></div>
+          <div class="grid-cell" data-r="1" data-c="0"></div>
+          <div class="grid-cell" data-r="1" data-c="1"></div>
+          <div class="grid-cell" data-r="1" data-c="2"></div>
+          <div class="grid-cell" data-r="1" data-c="3"></div>
+          <div class="grid-cell" data-r="2" data-c="0"></div>
+          <div class="grid-cell" data-r="2" data-c="1"></div>
+          <div class="grid-cell" data-r="2" data-c="2"></div>
+          <div class="grid-cell" data-r="2" data-c="3"></div>
+          <div class="grid-cell" data-r="3" data-c="0"></div>
+          <div class="grid-cell" data-r="3" data-c="1"></div>
+          <div class="grid-cell" data-r="3" data-c="2"></div>
+          <div class="grid-cell" data-r="3" data-c="3"></div>
+        </div>
+        <div class="tile-layer" id="tile-layer"></div>
+        <canvas class="fx-layer" id="fx-layer"></canvas>
+
+        <!-- Game Over / Victory Overlay -->
+        <div class="modal-overlay hidden" id="modal-overlay">
+          <div class="mc-dialog">
+            <h2 id="modal-title">ШАХТА ЗАВАЛЕНА!</h2>
+            <p id="modal-subtitle">Ходов больше нет, но вы добыли отличные ресурсы.</p>
+            <div class="modal-best-block" id="modal-best-block">
+              <canvas id="modal-block-canvas" width="48" height="48"></canvas>
+              <div>
+                <div class="modal-block-label">Лучший добытый блок:</div>
+                <div class="modal-block-name" id="modal-block-name">Железная руда</div>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="mc-btn primary-btn" id="btn-modal-action">КОПАТЬ СНОВА</button>
+              <button class="mc-btn secondary-btn hidden" id="btn-modal-continue">ПРОДОЛЖИТЬ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Ore Compendium / Crafting Chain (Hotbar style) -->
+    <footer class="compendium-footer">
+      <div class="compendium-header">
+        <span>ЦЕПОЧКА БЛОКОВ И РУД (СТЫКУЙ ОДИНАКОВЫЕ БЛОКИ)</span>
+        <span id="discovered-count">Открыто: 2 / 13</span>
+      </div>
+      <div class="ore-chain" id="ore-chain"></div>
+    </footer>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
